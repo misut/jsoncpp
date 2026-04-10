@@ -1,6 +1,8 @@
 module;
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <filesystem>
 #include <format>
 #include <fstream>
@@ -22,6 +24,10 @@ class Value;
 using Object = std::map<std::string, Value>;
 using Array = std::vector<Value>;
 
+// ParseError carries line + message info. On hosts that disable C++
+// exceptions (wasi-sdk WASM target), the parse path that would normally
+// throw aborts with a diagnostic instead — see fail() below. The class
+// itself still compiles in either mode for callers that catch it.
 class ParseError : public std::runtime_error {
 public:
     ParseError(std::size_t line, std::string const& msg)
@@ -33,6 +39,20 @@ public:
 private:
     std::size_t line_;
 };
+
+namespace detail {
+// Throw when C++ exceptions are enabled, abort otherwise. Lets the same
+// parser implementation compile under both -fexceptions (native) and
+// -fno-exceptions (wasi-sdk).
+[[noreturn]] inline void fail(std::size_t line, std::string const& msg) {
+#if __cpp_exceptions
+    throw ParseError(line, msg);
+#else
+    std::fprintf(stderr, "json: line %zu: %s\n", line, msg.c_str());
+    std::abort();
+#endif
+}
+} // namespace detail
 
 class Value {
 public:
@@ -158,7 +178,7 @@ public:
         Value v = parse_value();
         skip_whitespace();
         if (pos_ != src_.size())
-            throw ParseError(line_, "trailing data after root value");
+            fail(line_, "trailing data after root value");
         return v;
     }
 
@@ -168,7 +188,7 @@ private:
     std::size_t      line_ = 1;
 
     [[noreturn]] void error(std::string const& msg) {
-        throw ParseError(line_, msg);
+        fail(line_, msg);
     }
 
     char peek() {
@@ -457,7 +477,7 @@ Value parse(std::string_view input) {
 
 Value parse_file(std::string_view path) {
     std::ifstream file{std::string{path}, std::ios::binary};
-    if (!file) throw ParseError(0, std::format("cannot open file '{}'", path));
+    if (!file) detail::fail(0, std::format("cannot open file '{}'", path));
     std::stringstream buf;
     buf << file.rdbuf();
     return parse(buf.str());
