@@ -1,5 +1,20 @@
+module;
+#include <cmath>
+#include <cstdint>
+#include <filesystem>
+#include <format>
+#include <fstream>
+#include <map>
+#include <memory>
+#include <optional>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <variant>
+#include <vector>
 export module json;
-import std;
 
 export namespace json {
 
