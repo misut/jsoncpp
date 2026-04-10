@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "*.md"
+      - "LICENSE"
+      - ".gitignore"
+      - "mise.toml"
+      - ".claude/**"
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - "*.md"
+      - "LICENSE"
+      - ".gitignore"
+      - "mise.toml"
+      - ".claude/**"
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15
+            platform: aarch64-apple-darwin
+          - os: ubuntu-24.04
+            platform: x86_64-linux-gnu
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Cache toolchains
+        uses: actions/cache@v4
+        with:
+          path: ~/.intron/toolchains
+          key: intron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.intron.toml') }}
+
+      - name: Install intron
+        run: |
+          gh release download v0.15.0 -R misut/intron -p "intron-*-${{ matrix.platform }}.tar.gz"
+          tar xzf intron-*.tar.gz && sudo mv intron /usr/local/bin/ && rm intron-*.tar.gz
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Install toolchains
+        run: |
+          intron install llvm 22.1.2
+          intron install cmake 4.3.1
+          intron install ninja 1.13.2
+
+      - name: Install exon
+        run: |
+          gh release download v0.18.0 -R misut/exon -p "exon-*-${{ matrix.platform }}.tar.gz"
+          tar xzf exon-*.tar.gz && sudo mv exon /usr/local/bin/ && rm exon-*.tar.gz
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Build and test
+        run: |
+          eval "$(intron env)"
+          exon build
+          exon test

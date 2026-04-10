@@ -1,0 +1,11 @@
+# Build
+build/
+.exon/
+exon.lock
+CMakeLists.txt
+
+# IDE
+.vscode/
+
+# Claude Code
+CLAUDE.md

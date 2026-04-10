@@ -1,0 +1,8 @@
+[package]
+name = "jsoncpp"
+version = "0.1.0"
+description = "A JSON parser and emitter for C++"
+authors = ["Geunryeol Park (misut)"]
+license = "MIT"
+type = "lib"
+standard = 23
