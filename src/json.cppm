@@ -6,6 +6,7 @@ module;
 #include <filesystem>
 #include <format>
 #include <fstream>
+#include <limits>
 #include <map>
 #include <memory>
 #include <optional>
@@ -280,11 +281,32 @@ private:
         if (is_float) {
             return Value{std::stod(text)};
         }
-        try {
-            return Value{static_cast<std::int64_t>(std::stoll(text))};
-        } catch (std::out_of_range const&) {
+        // Hand-roll the i64 parse so we can detect overflow without
+        // exceptions (wasi-sdk builds with -fno-exceptions, so std::stoll's
+        // exception path can't be caught). On overflow we fall through to
+        // a double, mirroring the previous catch behavior.
+        bool negative = (text[0] == '-');
+        std::size_t i = negative ? 1 : 0;
+        std::uint64_t mag = 0;
+        bool overflowed = false;
+        for (; i < text.size(); ++i) {
+            std::uint64_t digit = static_cast<std::uint64_t>(text[i] - '0');
+            if (mag > (std::numeric_limits<std::uint64_t>::max() - digit) / 10) {
+                overflowed = true;
+                break;
+            }
+            mag = mag * 10 + digit;
+        }
+        std::uint64_t i64_max_mag =
+            negative ? static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()) + 1
+                     : static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max());
+        if (overflowed || mag > i64_max_mag) {
             return Value{std::stod(text)};
         }
+        std::int64_t signed_value = negative
+            ? -static_cast<std::int64_t>(mag)
+            : static_cast<std::int64_t>(mag);
+        return Value{signed_value};
     }
 
     Value parse_string() {
