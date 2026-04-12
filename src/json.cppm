@@ -86,6 +86,8 @@ public:
     bool is_string() const { return std::holds_alternative<std::string>(data_); }
     bool is_array() const { return std::holds_alternative<std::unique_ptr<Array>>(data_); }
     bool is_object() const { return std::holds_alternative<std::unique_ptr<Object>>(data_); }
+    // Alias for txn::ValueLike compatibility (TOML calls objects "tables").
+    bool is_table() const { return is_object(); }
 
     bool as_bool() const { return std::get<bool>(data_); }
     std::int64_t as_integer() const {
@@ -101,6 +103,8 @@ public:
     Array& as_array() { return *std::get<std::unique_ptr<Array>>(data_); }
     Object const& as_object() const { return *std::get<std::unique_ptr<Object>>(data_); }
     Object& as_object() { return *std::get<std::unique_ptr<Object>>(data_); }
+    // Alias for txn::ValueLike compatibility.
+    Object const& as_table() const { return as_object(); }
 
     bool contains(std::string const& key) const {
         return is_object() && as_object().contains(key);

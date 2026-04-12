@@ -125,6 +125,9 @@ void test_parse_empty_object() {
     auto v = json::parse("{}");
     check(v.is_object(), "empty object type");
     check(v.as_object().empty(), "empty object size");
+    // table aliases
+    check(v.is_table(), "empty table alias");
+    check(v.as_table().empty(), "empty table alias size");
 }
 
 void test_parse_object() {
@@ -135,6 +138,8 @@ void test_parse_object() {
     check(o.contains("age"), "object key age");
     check(o.at("name").as_string() == "alice", "object name value");
     check(o.at("age").as_integer() == 30, "object age value");
+    // table aliases return the same reference
+    check(&v.as_table() == &v.as_object(), "table alias same ref");
 }
 
 void test_parse_nested_object() {
