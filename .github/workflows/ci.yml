@@ -54,8 +54,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
-      - name: Build and test
+      - name: Build
         run: |
-          eval "$(intron env)"
-          exon build
-          exon test
+          intron exec -- exon build
+
+      - name: Test
+        run: |
+          intron exec -- exon test
